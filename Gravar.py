@@ -1,28 +1,44 @@
 import os
 import shutil
 import subprocess
+import sys
 import threading
 import pyaudiowpatch as pyaudio
 import wave
 from pathlib import Path
 from datetime import datetime
 
+from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QApplication, QDialog, QLabel, QPushButton, QVBoxLayout
-from PySide6.QtCore import QElapsedTimer, Qt, QTimer
+from PySide6.QtCore import QElapsedTimer, QStandardPaths, Qt, QTimer
 
 
 class GravadorTela:
 
-    def __init__(self):
+    def __init__(self, pasta_saida=None):
         
         self.processo = None
         self.arquivo_saida = None
         self.arquivo_video_temp = None
         self.arquivo_audio_temp = None
         self.gravador_audio = None
+        if pasta_saida is None:
+            if getattr(sys, "frozen", False):
+                pasta_saida = Path(sys.executable).resolve().parent / "Videos"
+            else:
+                desktop = QStandardPaths.writableLocation(
+                    QStandardPaths.StandardLocation.DesktopLocation
+                )
+                pasta_saida = Path(desktop or Path.home() / "Desktop") / "Gravei"
+        self.pasta_saida = Path(pasta_saida)
 
     @staticmethod
     def localizar_ffmpeg():
+
+        if getattr(sys, "frozen", False):
+            ffmpeg_empacotado = Path(sys._MEIPASS) / "ffmpeg.exe"
+            if ffmpeg_empacotado.is_file():
+                return str(ffmpeg_empacotado)
 
         ffmpeg_no_path = shutil.which("ffmpeg")
         if ffmpeg_no_path:
@@ -58,7 +74,6 @@ class GravadorTela:
             raise RuntimeError("Já existe uma gravação em andamento.")
 
         if regiao is None:
-            # Captura o monitor principal inteiro.
             tela = QApplication.primaryScreen()
             geometria = tela.geometry()
 
@@ -80,9 +95,8 @@ class GravadorTela:
         nome = datetime.now().strftime(
             "gravacao_%Y%m%d_%H%M%S_%f.mp4"
         )
-        pasta_projeto = Path(__file__).resolve().parent
-        pasta_projeto.mkdir(parents=True, exist_ok=True)
-        self.arquivo_saida = pasta_projeto / nome
+        self.pasta_saida.mkdir(parents=True, exist_ok=True)
+        self.arquivo_saida = self.pasta_saida / nome
         self.arquivo_video_temp = self.arquivo_saida.with_name(
             f"{self.arquivo_saida.stem}_video.mp4"
         )
@@ -114,7 +128,7 @@ class GravadorTela:
         self.processo = subprocess.Popen(
             comando,
             stdin=subprocess.PIPE,
-            cwd=str(pasta_projeto),
+            cwd=str(self.pasta_saida),
         )
 
         self.gravador_audio = GravadorAudio(self.arquivo_audio_temp)
@@ -223,6 +237,7 @@ class GravadorTela:
             "-map", "0:v:0",
             "-map", "1:a:0",
             "-c:v", "copy",
+            "-af", "loudnorm=I=-16:TP=-1.5:LRA=11",
             "-c:a", "aac",
             "-b:a", "192k",
             "-shortest",
@@ -253,11 +268,12 @@ class GravadorTela:
 
 class JanelaGravacao(QDialog):
 
-    def __init__(self, ao_parar, parent=None):
+    def __init__(self, ao_parar, parent=None, geometria_tela=None):
 
         super().__init__(parent)
         self.ao_parar = ao_parar
         self.finalizando = False
+        self.geometria_tela = geometria_tela
 
         self.setWindowTitle("Gravação")
         self.setWindowFlags(
@@ -280,6 +296,16 @@ class JanelaGravacao(QDialog):
 
     def iniciar(self):
 
+        geometria = self.geometria_tela
+        if geometria is None:
+            tela = QGuiApplication.primaryScreen()
+            geometria = tela.availableGeometry()
+
+        margem = 12
+        self.move(
+            geometria.right() - self.width() - margem,
+            geometria.bottom() - self.height() - margem,
+        )
         self.relogio.start()
         self.atualizador.start()
         self.show()

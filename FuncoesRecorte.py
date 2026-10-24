@@ -28,7 +28,6 @@ class SeletorRegiao(QDialog):
         self.inicio = None
         self.regiao = None
 
-        # O retângulo pertence à janela de seleção.
         self.rubber_band = QRubberBand(
             QRubberBand.Shape.Rectangle, self
         )
@@ -40,6 +39,7 @@ class SeletorRegiao(QDialog):
         )
 
     def mousePressEvent(self, event):
+
         if event.button() == Qt.MouseButton.LeftButton:
             self.inicio = event.position().toPoint()
 
@@ -49,6 +49,7 @@ class SeletorRegiao(QDialog):
             self.rubber_band.show()
 
     def mouseMoveEvent(self, event):
+
         if self.inicio is not None:
             atual = event.position().toPoint()
 
@@ -57,6 +58,7 @@ class SeletorRegiao(QDialog):
             )
 
     def mouseReleaseEvent(self, event):
+
         if (
             event.button() == Qt.MouseButton.LeftButton
             and self.inicio is not None
@@ -78,6 +80,7 @@ class SeletorRegiao(QDialog):
                 self.inicio = None
 
     def keyPressEvent(self, event):
+
         if event.key() == Qt.Key.Key_Escape:
             self.regiao = None
             self.reject()

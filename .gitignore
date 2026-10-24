@@ -1,0 +1,41 @@
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+build/
+dist/
+Gravei.spec
+*.egg-info/
+
+*.mp4
+*.wav
+
+# Keep the build task versioned; ignore local VS Code settings and history.
+.vscode/*
+!.vscode/tasks.json
+.history/
+
+# Local environment and generated files.
+.env
+.env.*
+!.env.example
+*.log
+*.tmp
+*.bak
+*~
+tempCodeRunnerFile.py
+
+# Python tooling caches and local coverage output.
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Operating system metadata.
+.DS_Store
+Thumbs.db
+Desktop.ini
